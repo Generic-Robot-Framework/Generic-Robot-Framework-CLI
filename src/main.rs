@@ -85,8 +85,8 @@ fn main() {
                     handle_topic_sub_command(tsub.topic.as_str());
                 }
 
-                TopicCommands::Pub(mut tput) => {
-                    handle_topic_pub_command(tput.topic.as_str(), tput.message.take());
+                TopicCommands::Pub(mut tpub) => {
+                    handle_topic_pub_command(tpub.topic.as_str(), tpub.message.take());
                 }
 
                 TopicCommands::List(_) => {
