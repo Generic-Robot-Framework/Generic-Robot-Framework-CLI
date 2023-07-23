@@ -1,10 +1,10 @@
 use std::io::Write;
 use std::net::{Shutdown, TcpStream};
-use crate::server::message::Message;
+use crate::message::message::Message;
 use crate::server::serve::{AtomicTopics, message_to_http_request, single_request_to_string};
 
 
-/// Server side list
+/// Server side topic list
 pub fn handle_message_kind_list(mut stream: TcpStream, topics: AtomicTopics) {
     let mut response = String::from("");
 
@@ -18,7 +18,7 @@ pub fn handle_message_kind_list(mut stream: TcpStream, topics: AtomicTopics) {
     stream.shutdown(Shutdown::Both).ok();
 }
 
-/// Client side list
+/// Client side topic list
 pub fn handle_topic_list_command() {
     let mut stream = TcpStream::connect("127.0.0.1:1312").unwrap();
 

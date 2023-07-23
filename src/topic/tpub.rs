@@ -1,10 +1,9 @@
 use std::io::Write;
 use std::net::{Shutdown, TcpStream};
-use crate::server::message::Message;
+use crate::message::message::{get_message_type, Message};
 use crate::server::serve::{AtomicTopics, handle_generic_topics, message_to_http_request};
-use crate::topic::topic::message_type_for_topic;
 
-/// Server side pub
+/// Server side topic pub
 pub fn handle_message_kind_pub(stream: TcpStream, message: Message, topics: AtomicTopics) {
     handle_generic_topics(message.clone().topic.unwrap());
 
@@ -26,7 +25,7 @@ pub fn handle_message_kind_pub(stream: TcpStream, message: Message, topics: Atom
     println!("Sent message from {} to topic {}", stream.peer_addr().unwrap(), message.topic.unwrap());
 }
 
-/// Client side pub
+/// Client side topic pub
 pub fn handle_topic_pub_command(topic_name: String, message: Option<String>) {
 
     let data: Message;
@@ -34,7 +33,7 @@ pub fn handle_topic_pub_command(topic_name: String, message: Option<String>) {
     if message.is_some() {
         println!("Sending message \"{}\" to topic \"{}\"", message.clone().unwrap(), topic_name);
 
-        let message_type = message_type_for_topic(topic_name.clone());
+        let message_type = get_message_type(topic_name.clone());
 
         if message_type.is_none() {
             panic!("Unknown message type");

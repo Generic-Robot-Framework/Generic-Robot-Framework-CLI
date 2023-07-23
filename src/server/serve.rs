@@ -7,7 +7,7 @@ use std::process::exit;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use generic_robot_framework::models::topic::Topic;
-use crate::server::message::Message;
+use crate::message::message::Message;
 use crate::TEMP_FOLDER;
 use crate::topic::list::handle_message_kind_list;
 use crate::topic::tpub::handle_message_kind_pub;

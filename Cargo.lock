@@ -387,6 +387,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "generic_robot_framework",
+ "json_pretty",
  "jsonschema",
  "serde",
  "serde_json",
@@ -583,6 +584,12 @@ checksum = "c5f195fe497f702db0f318b07fdd68edb16955aed830df8363d837542f8f935a"
 dependencies = [
  "wasm-bindgen",
 ]
+
+[[package]]
+name = "json_pretty"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c9fe3f290d2cb8660e3e051352ea55a404788d213a106a33ec8802447c4a762"
 
 [[package]]
 name = "jsonschema"

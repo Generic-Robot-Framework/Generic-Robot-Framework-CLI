@@ -2,11 +2,10 @@ use std::io::Write;
 use std::net::{Shutdown, TcpStream};
 use jsonschema::JSONSchema;
 use generic_robot_framework::models::topic::Topic;
-use crate::server::message::Message;
+use crate::message::message::{get_message_type, get_schema, is_message_type_registered, Message};
 use crate::server::serve::{acknowledgement_http_request, AtomicTopics, message_to_http_request, OK_HTTP_STATUS, single_request_to_string};
-use crate::topic::topic::{get_schema, message_type_for_topic, message_type_is_registered};
 
-/// Server side sub
+/// Server side topic sub
 pub fn handle_message_kind_sub(mut stream: TcpStream, message: Message, topics: AtomicTopics) {
 
     let mut topic_exists = false;
@@ -42,7 +41,7 @@ pub fn handle_message_kind_sub(mut stream: TcpStream, message: Message, topics: 
 }
 
 
-/// Client side sub
+/// Client side topic sub
 pub fn handle_topic_sub_command(topic_name: String, message_type: Option<String>) {
     println!("Subscribing to topic \"{topic_name}\"");
 
@@ -52,7 +51,7 @@ pub fn handle_topic_sub_command(topic_name: String, message_type: Option<String>
     let validation_schema: Option<JSONSchema>;
 
     if message_type.is_some() {
-        if !message_type_is_registered(message_type.clone().unwrap()) {
+        if !is_message_type_registered(message_type.clone().unwrap()) {
             panic!("Message type has not been registered")
         }
 
@@ -66,7 +65,7 @@ pub fn handle_topic_sub_command(topic_name: String, message_type: Option<String>
         validation_schema = Some(get_schema(message_type.unwrap()));
     }
     else {
-        let message_type = message_type_for_topic(topic_name.clone());
+        let message_type = get_message_type(topic_name.clone());
 
         if message_type.is_none() {
             panic!("Unknown message type");

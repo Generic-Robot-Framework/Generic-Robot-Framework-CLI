@@ -1,9 +1,13 @@
 use clap::{Args, CommandFactory, Parser, Subcommand};
 use crate::build::build::build_workspace;
 use crate::completions::completions::generate_completions;
+use crate::message::get::handle_get_message_command;
+use crate::message::list::handle_message_list_command;
+use crate::message::show::handle_show_message_command;
 use crate::package::workspace::parse_workspace;
 
 mod topic;
+mod message;
 mod package;
 mod server;
 mod build;
@@ -34,7 +38,12 @@ enum  Commands {
     #[command(subcommand)]
     Topic(TopicCommands),
 
-    Completions
+    /// Messages interaction commands
+    #[command(subcommand)]
+    Msg(MsgCommands),
+
+    /// Creates the completion files to source in order to use topics and default messages
+    Completions(Completions)
 }
 
 #[derive(Debug, Args)]
@@ -55,31 +64,38 @@ struct Serve {
     path: Option<String>
 }
 
+#[derive(Debug, Args)]
+struct Completions {
+    /// Avoid sourcing the file after it's generated
+    #[arg(short, long)]
+    no_sourcing: bool,
+}
+
 #[derive(Debug, Subcommand)]
 enum TopicCommands {
     /// Topic subscription command
-    Sub(SubtCommand),
+    Sub(SubTopicCommand),
 
     /// Topic publication command
-    Pub(PubtCommand),
+    Pub(PubTopicCommand),
 
     /// Topic list command
-    List(ListCommand),
+    List(ListTopicCommand),
 }
 
 #[derive(Debug, Args)]
-struct SubtCommand {
+struct SubTopicCommand {
     /// Name of the topic to sub to
     #[arg(value_name = "topic", index = 1)]
     topic: String,
 
-    /// Topic essage type
+    /// Topic message type
     #[arg(value_name = "message_type", index = 2)]
     message_type: Option<String>
 }
 
 #[derive(Debug, Args)]
-struct PubtCommand {
+struct PubTopicCommand {
     /// Name of the topic to pub to
     #[arg(value_name = "topic", index = 1)]
     topic: String,
@@ -90,7 +106,42 @@ struct PubtCommand {
 }
 
 #[derive(Debug, Args)]
-struct ListCommand {
+struct ListTopicCommand {
+
+}
+
+#[derive(Debug, Subcommand)]
+enum MsgCommands {
+    /// Get message type for the given topic
+    Get(GetMsgCommand),
+
+    /// Show default data for the given message type
+    Show(ShowMsgCommand),
+
+    /// List registered messages
+    List(ListMsgCommand)
+}
+
+#[derive(Debug, Args)]
+struct GetMsgCommand {
+    /// Name of the topic to retrieve message type
+    #[arg(value_name = "topic", index = 1)]
+    topic: String,
+}
+
+#[derive(Debug, Args)]
+struct ShowMsgCommand {
+    /// Name of the message type to show default data
+    #[arg(value_name = "message_type", index = 1)]
+    message_type: String,
+
+    /// Pretty print
+    #[arg(short, long)]
+    pretty: bool,
+}
+
+#[derive(Debug, Args)]
+struct ListMsgCommand {
 
 }
 
@@ -119,6 +170,20 @@ fn main() {
             }
         }
 
+        Commands::Msg(message_commands) => {
+            match message_commands {
+                MsgCommands::Get(get) => {
+                    handle_get_message_command(get.topic);
+                }
+                MsgCommands::Show(show) => {
+                    handle_show_message_command(show.message_type, show.pretty)
+                }
+                MsgCommands::List(_list) => {
+                    handle_message_list_command()
+                }
+            }
+        }
+
         Commands::Build(build) => {
             let path;
 
@@ -137,8 +202,8 @@ fn main() {
             run_server(serve.port);
         }
 
-        Commands::Completions => {
-            generate_completions(cmd, cmd_name);
+        Commands::Completions(completions) => {
+            generate_completions(cmd, cmd_name, completions.no_sourcing);
         }
     }
 }

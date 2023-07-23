@@ -1,13 +1,11 @@
-use std::fs::File;
-use std::{fs};
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 use clap::Command;
 use clap_complete::generate_to;
 use clap_complete::Shell::{Bash, Elvish, Fish, PowerShell, Zsh};
 use crate::{string_to_static_str, TEMP_FOLDER};
+use crate::message::message::{get_default, get_topics};
 
-pub fn generate_completions(mut cmd: Command, cmd_name: String) {
+pub fn generate_completions(mut cmd: Command, cmd_name: String, no_sourcing: bool) {
     for command in cmd.get_subcommands_mut() {
         if command.get_name() != "topic" {
             continue;
@@ -18,14 +16,7 @@ pub fn generate_completions(mut cmd: Command, cmd_name: String) {
                 continue;
             }
 
-            let topics_file_path = PathBuf::from(TEMP_FOLDER).join("topics.json");
-
-            if !topics_file_path.exists() {
-                File::create(&topics_file_path).expect("Cannot create topics file");
-            }
-
-            let topics_file = fs::read_to_string(topics_file_path).expect("Could not read topics file");
-            let topics: HashMap<String, Option<String>> = serde_json::from_str(topics_file.as_str()).unwrap();
+            let topics = get_topics();
 
             for (topic, message_type) in topics {
                 let topic = string_to_static_str(topic);
@@ -37,21 +28,13 @@ pub fn generate_completions(mut cmd: Command, cmd_name: String) {
                 let mut new_command = Command::new(topic);
 
                 if message_type.is_some() {
-                    let mut message_default = fs::read_to_string(
-                        Path::new(TEMP_FOLDER)
-                            .join("defaults")
-                            .join(message_type.clone().unwrap() + ".json")
-                        )
-                        .unwrap();
+                    let message_default = get_default(message_type.unwrap());
 
-                    #[cfg(windows)]
-                    {
-                        message_default = message_default.replace("\"", "\\\"");
+                    if message_default.is_some() {
+                        let message_default = string_to_static_str(format!("\"{}\"", message_default.unwrap()));
+
+                        new_command = new_command.subcommand(Command::new(message_default));
                     }
-
-                    let message_default = string_to_static_str(format!("\"{}\"", message_default));
-
-                    new_command = new_command.subcommand(Command::new(message_default));
                 }
 
                 *topic_command = topic_command.clone().subcommand(new_command);
@@ -61,9 +44,38 @@ pub fn generate_completions(mut cmd: Command, cmd_name: String) {
 
     let outdir = PathBuf::from(TEMP_FOLDER).join("completions");
 
-    generate_to(Bash, &mut cmd, &cmd_name, &outdir).ok();
+    let _powershell = generate_to(PowerShell, &mut cmd, &cmd_name, &outdir).ok();
+    let _bash = generate_to(Bash, &mut cmd, &cmd_name, &outdir).ok();
     generate_to(Elvish, &mut cmd, &cmd_name, &outdir).ok();
     generate_to(Fish, &mut cmd, &cmd_name, &outdir).ok();
-    generate_to(PowerShell, &mut cmd, &cmd_name, &outdir).ok();
     generate_to(Zsh, &mut cmd, &cmd_name, &outdir).ok();
+
+    println!("Output folder:");
+    println!("{}", outdir.to_str().unwrap());
+
+    if !no_sourcing {
+
+        todo!();
+        /*
+        #[cfg(windows)]
+        {
+            let mut ps = std::process::Command::new("powershell.exe")
+                .arg("-c")
+                .arg("-")
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .spawn()
+                .expect("Could not source completion file");
+
+            let stdin = ps.stdin.as_mut().unwrap();
+            stdin.write_all(powershell.unwrap().to_str().unwrap().as_bytes());
+        }
+        #[cfg(linux)]
+        {
+            let shell = env!("$SHELL");
+            std::process::Command::new("source")
+                .arg(bash.unwrap().to_str().unwrap())
+                .output();
+        }*/
+    }
 }
