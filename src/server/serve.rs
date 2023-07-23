@@ -1,54 +1,41 @@
-use std::io::{BufRead, BufReader, Read};
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::path::{MAIN_SEPARATOR_STR, PathBuf};
+use std::path::PathBuf;
 use std::process::exit;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use generic_robot_framework::models::topic::Topic;
-use crate::package::PackageType;
-use crate::package::workspace::parse_workspace;
 use crate::server::message::Message;
+use crate::TEMP_FOLDER;
 use crate::topic::list::handle_message_kind_list;
 use crate::topic::tpub::handle_message_kind_pub;
 use crate::topic::tsub::handle_message_kind_sub;
 
-pub fn run_server(workspace_path: Option<String>, port: Option<String>) {
-    println!("Retrieving workspace information...");
+pub fn run_server(port: Option<String>) {
 
-    let path: String;
-    if workspace_path.is_some() {
-        path = workspace_path.unwrap() + MAIN_SEPARATOR_STR + "Package.toml";
-    }
-    else {
-        path = "Package.toml".to_string();
-    }
-
-    let mut workspace = parse_workspace(&path);
-
-    if workspace.package.package_type != PackageType::Workspace {
-        panic!("Workspace package type must be 'Workspace' in {}", path)
-    }
-    else {
-        workspace.path = PathBuf::from(path);
-    }
-
-    println!(" ===== ");
     /* ===== */
     println!("Starting server...");
 
     let address = "127.0.0.1:".to_string() + port.unwrap_or("1312".to_string()).as_str();
     let listener = TcpListener::bind(&address).unwrap();
 
-    let topics: Arc<Mutex<Vec<Topic>>> = Arc::new(Mutex::new(vec![
+    let topics = AtomicTopics::new(Arc::new(Mutex::new(vec![
         Topic {
             name: String::from("finish"),
+            message_type: None,
             subscribers: vec![]
         },
         Topic {
             name: String::from("info"),
+            message_type: None,
             subscribers: vec![]
         }
-    ]));
+    ])));
+
+    topics.topics_to_file();
+
 
     println!("Server started on: {}", address);
 
@@ -68,7 +55,7 @@ pub fn run_server(workspace_path: Option<String>, port: Option<String>) {
     }
 }
 
-pub fn handle_connection(mut stream: TcpStream, topics: Arc<Mutex<Vec<Topic>>>) {
+pub fn handle_connection(mut stream: TcpStream, topics: AtomicTopics) {
     let http_request = single_request_to_string_vec(&mut stream);
 
     println!("Received: {:?}", http_request.to_vec());
@@ -142,6 +129,7 @@ pub fn acknowledgement_http_request() -> String {
 }
 
 /// Formatting a String to a HTTP request
+#[allow(dead_code)]
 pub fn string_to_http_request(data: String) -> String {
     let length = data.len();
 
@@ -155,3 +143,36 @@ pub fn message_to_http_request(data: &Message) -> String {
 
     format!("{OK_HTTP_STATUS}\r\nContent-Length: {length}\r\nContent: {contents}")
 }
+
+
+#[derive(Clone)]
+pub struct AtomicTopics {
+    pub(crate) topics: Arc<Mutex<Vec<Topic>>>
+}
+
+impl AtomicTopics {
+    const fn new(topics: Arc<Mutex<Vec<Topic>>>) -> AtomicTopics {
+        AtomicTopics {
+            topics
+        }
+    }
+
+    /// Writes the name of the available topics to the topics file
+    pub fn topics_to_file(&self) {
+        let topics_file_path = PathBuf::from(TEMP_FOLDER).join("topics.json");
+
+        let mut topics_file = File::create(topics_file_path).expect("Cannot create topics file");
+
+        let topics: HashMap<String, Option<String>> = self.topics
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|topic| (topic.name.clone(), topic.message_type.clone()))
+            .collect();
+
+        let json_topics = serde_json::to_string(&topics).unwrap();
+
+        topics_file.write_all(json_topics.as_bytes()).ok();
+    }
+}
+

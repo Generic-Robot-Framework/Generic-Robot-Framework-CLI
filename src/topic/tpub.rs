@@ -1,13 +1,11 @@
 use std::io::Write;
 use std::net::{Shutdown, TcpStream};
-use std::sync::{Arc, Mutex};
-use serde_json::{Value};
-use generic_robot_framework::models::topic::Topic;
 use crate::server::message::Message;
-use crate::server::serve::{handle_generic_topics, message_to_http_request};
+use crate::server::serve::{AtomicTopics, handle_generic_topics, message_to_http_request};
+use crate::topic::topic::message_type_for_topic;
 
 /// Server side pub
-pub fn handle_message_kind_pub(stream: TcpStream, message: Message, topics: Arc<Mutex<Vec<Topic>>>) {
+pub fn handle_message_kind_pub(stream: TcpStream, message: Message, topics: AtomicTopics) {
     handle_generic_topics(message.clone().topic.unwrap());
 
 
@@ -17,7 +15,7 @@ pub fn handle_message_kind_pub(stream: TcpStream, message: Message, topics: Arc<
         bytes_to_send = [bytes_to_send, serde_json::to_vec(content).unwrap()].concat();
     }
 
-    for topic in topics.lock().unwrap().iter() {
+    for topic in topics.topics.lock().unwrap().iter() {
         if topic.name == message.topic.as_ref().unwrap().clone() {
             topic.write_to_subscribers(&bytes_to_send)
         }
@@ -29,17 +27,26 @@ pub fn handle_message_kind_pub(stream: TcpStream, message: Message, topics: Arc<
 }
 
 /// Client side pub
-pub fn handle_topic_pub_command(topic_name: &str, message: Option<String>) {
+pub fn handle_topic_pub_command(topic_name: String, message: Option<String>) {
 
     let data: Message;
 
     if message.is_some() {
         println!("Sending message \"{}\" to topic \"{}\"", message.clone().unwrap(), topic_name);
 
+        let message_type = message_type_for_topic(topic_name.clone());
+
+        if message_type.is_none() {
+            panic!("Unknown message type");
+        }
+
+        let content = serde_json::from_str(&message.unwrap()).expect("Could not parse message to JSON");
+
         data = Message {
             kind: String::from("pub"),
-            topic: Some(String::from(topic_name)),
-            message: Some(Value::String(message.unwrap()))
+            topic: Some(topic_name),
+            message_type: message_type.unwrap(),
+            message: Some(content)
         };
     }
     else {
@@ -48,6 +55,7 @@ pub fn handle_topic_pub_command(topic_name: &str, message: Option<String>) {
         data = Message {
             kind: String::from("pub"),
             topic: Some(String::from(topic_name)),
+            message_type: None,
             message: None
         };
     }

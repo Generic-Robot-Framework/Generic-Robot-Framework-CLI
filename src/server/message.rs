@@ -6,5 +6,6 @@ use serde_json::Value;
 pub struct Message {
     pub kind: String,
     pub topic: Option<String>,
+    pub message_type: Option<String>,
     pub message: Option<Value>,
 }

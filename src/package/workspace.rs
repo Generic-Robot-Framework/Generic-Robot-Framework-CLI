@@ -1,25 +1,41 @@
 use std::fs;
-use std::path::PathBuf;
-use crate::package::{PackageFile};
+use std::path::{MAIN_SEPARATOR_STR, PathBuf};
+use cargo_manifest::Manifest;
+use crate::package::models::{Package, PackageFile, Workspace};
 
-pub fn parse_workspace(file_path: &String) -> PackageFile {
-    let path = PathBuf::from(&file_path);
+pub fn parse_workspace(workspace_path: String) -> Workspace {
+    let manifest_path = workspace_path.clone() + "Cargo.toml";
 
-    let content = match fs::read_to_string(&path) {
-        Ok(c) => c,
-        Err(error) => {
-            eprintln!("Error: {}", error.to_string());
-            panic!("Could not open workspace: {}", file_path);
-        }
+    let manifest_content = fs::read_to_string(&manifest_path).expect("Could not read Cargo.toml file");
+    let workspace_manifest: Manifest = toml::from_str(manifest_content.as_str()).expect("Absent or malformed manifest");
+
+    if workspace_manifest.workspace.is_none() {
+        panic!("Workspace has no members")
+    }
+
+    let toml_workspace = workspace_manifest.workspace.unwrap();
+
+    let mut workspace = Workspace {
+        path: PathBuf::from(workspace_path.clone()),
+        packages: vec![]
     };
 
-    let package: PackageFile = match toml::from_str(content.as_str()) {
-        Ok(pkg) => pkg,
-        Err(error) => {
-            eprintln!("Error: {}", error.message());
-            panic!("Could not parse workspace: {}", file_path);
-        }
-    };
+    for package_path in toml_workspace.members {
+        let package_manifest_path = workspace_path.clone() + package_path.as_str() + MAIN_SEPARATOR_STR + "Cargo.toml";
 
-    return package;
+        let package_content = fs::read_to_string(package_manifest_path).expect("Could not read Cargo.toml file");
+        let package_manifest: Manifest = toml::from_str(package_content.as_str()).expect("Absent or malformed manifest");
+
+        let package = PackageFile {
+            package: Package {
+                name: package_manifest.package.unwrap().name,
+                version: "".to_string()//package_manifest.package.unwrap().version
+            },
+            path: PathBuf::from(package_path),
+        };
+
+        workspace.packages.push(package);
+    }
+
+    return workspace;
 }
