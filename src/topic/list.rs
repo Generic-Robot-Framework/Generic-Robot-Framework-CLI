@@ -1,7 +1,7 @@
 use std::io::Write;
 use std::net::{Shutdown, TcpStream};
-use crate::message::message::Message;
-use crate::server::serve::{AtomicTopics, message_to_http_request, single_request_to_string};
+use crate::message::message::{get_topics};
+use crate::server::serve::{AtomicTopics};
 
 
 /// Server side topic list
@@ -19,21 +19,33 @@ pub fn handle_message_kind_list(mut stream: TcpStream, topics: AtomicTopics) {
 }
 
 /// Client side topic list
-pub fn handle_topic_list_command() {
-    let mut stream = TcpStream::connect("127.0.0.1:1312").unwrap();
+pub fn handle_topic_list_command(with_message_types: bool) {
+    let topics = get_topics();
 
-    let data = Message {
-        kind: String::from("list"),
-        topic: None,
-        message_type: None,
-        message: None
-    };
+    let mut separator = "--------------------".to_string();
 
-    let request = message_to_http_request(&data);
-    stream.write_all(request.as_bytes()).ok();
+    print!("{0: <20}", "Topic name");
 
-    stream.shutdown(Shutdown::Write).ok();
+    if with_message_types {
+        print!("{0: <20}", "Message type");
+        separator += "--------------------";
+    }
 
-    let response = single_request_to_string(&mut stream);
-    print!("Topics:\n{}", response);
+    println!();
+    println!("{separator}");
+
+    for (topic, message_type) in topics {
+        print!("{0: <20}", topic);
+
+        if with_message_types {
+            if message_type.is_some() {
+                print!("{0: <20}", message_type.unwrap());
+            }
+            else {
+                print!("{0: <20}", "None")
+            }
+        }
+
+        println!();
+    }
 }

@@ -5,6 +5,8 @@ use crate::message::get::handle_get_message_command;
 use crate::message::list::handle_message_list_command;
 use crate::message::show::handle_show_message_command;
 use crate::package::workspace::parse_workspace;
+use crate::node::list::list_nodes;
+use crate::node::run::run_node;
 
 mod topic;
 mod message;
@@ -12,6 +14,7 @@ mod package;
 mod server;
 mod build;
 mod completions;
+mod node;
 
 use crate::server::serve::run_server;
 use crate::topic::list::{handle_topic_list_command};
@@ -33,6 +36,10 @@ enum  Commands {
 
     /// Start the topics server
     Serve(Serve),
+
+    /// Node interaction commands
+    #[command(subcommand)]
+    Node(NodeCommands),
 
     /// Topic interaction commands
     #[command(subcommand)]
@@ -107,7 +114,9 @@ struct PubTopicCommand {
 
 #[derive(Debug, Args)]
 struct ListTopicCommand {
-
+    /// Also prints messages types
+    #[arg(short, long)]
+    message_types: bool,
 }
 
 #[derive(Debug, Subcommand)]
@@ -145,6 +154,33 @@ struct ListMsgCommand {
 
 }
 
+#[derive(Debug, Subcommand)]
+enum  NodeCommands {
+    /// Run the given registered node
+    Run(RunNodeCommand),
+
+    /// List the registered nodes
+    List(ListNodeCommand)
+}
+
+#[derive(Debug, Args)]
+struct RunNodeCommand {
+    /// Name of the node to run
+    #[arg(value_name = "node_name", index = 1)]
+    node_name: String,
+}
+
+#[derive(Debug, Args)]
+struct ListNodeCommand {
+    /// Also print binary names
+    #[arg(short, long)]
+    bin_name: bool,
+
+    /// Also print binary path
+    #[arg(short, long)]
+    package_path: bool,
+}
+
 const TEMP_FOLDER: &str = "C:\\Users\\Julien\\Documents\\Recherche\\Generic_Robot_Framework\\temp\\";
 
 fn main() {
@@ -164,8 +200,8 @@ fn main() {
                     handle_topic_pub_command(tpub.topic, tpub.message.take());
                 }
 
-                TopicCommands::List(_) => {
-                    handle_topic_list_command();
+                TopicCommands::List(list) => {
+                    handle_topic_list_command(list.message_types);
                 }
             }
         }
@@ -180,6 +216,18 @@ fn main() {
                 }
                 MsgCommands::List(_list) => {
                     handle_message_list_command()
+                }
+            }
+        }
+
+        Commands::Node(node) => {
+            match node {
+                NodeCommands::Run(run) => {
+                    run_node(run.node_name)
+                }
+
+                NodeCommands::List(list) => {
+                    list_nodes(list.bin_name, list.package_path)
                 }
             }
         }

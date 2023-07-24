@@ -1,12 +1,11 @@
 use std::io::Write;
 use std::net::{Shutdown, TcpStream};
 use crate::message::message::{get_message_type, Message};
-use crate::server::serve::{AtomicTopics, handle_generic_topics, message_to_http_request};
+use crate::server::serve::{acknowledgement_http_request, AtomicTopics, handle_generic_topics, message_to_http_request};
 
 /// Server side topic pub
-pub fn handle_message_kind_pub(stream: TcpStream, message: Message, topics: AtomicTopics) {
+pub fn handle_message_kind_pub(mut stream: TcpStream, message: Message, topics: AtomicTopics) {
     handle_generic_topics(message.clone().topic.unwrap());
-
 
     let mut bytes_to_send = Vec::new();
 
@@ -14,13 +13,16 @@ pub fn handle_message_kind_pub(stream: TcpStream, message: Message, topics: Atom
         bytes_to_send = [bytes_to_send, serde_json::to_vec(content).unwrap()].concat();
     }
 
-    for topic in topics.topics.lock().unwrap().iter() {
+    for topic in topics.topics.lock().as_deref_mut().unwrap() {
         if topic.name == message.topic.as_ref().unwrap().clone() {
-            topic.write_to_subscribers(&bytes_to_send)
+            topic.write_to_subscribers(&bytes_to_send);
         }
     }
 
-    stream.shutdown(Shutdown::Both).ok();
+    stream.shutdown(Shutdown::Read).ok();
+
+    let response = acknowledgement_http_request();
+    stream.write_all(response.as_bytes()).unwrap();
 
     println!("Sent message from {} to topic {}", stream.peer_addr().unwrap(), message.topic.unwrap());
 }
