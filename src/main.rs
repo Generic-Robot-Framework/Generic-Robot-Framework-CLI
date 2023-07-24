@@ -79,6 +79,33 @@ struct Completions {
 }
 
 #[derive(Debug, Subcommand)]
+enum  NodeCommands {
+    /// Run the given registered node
+    Run(RunNodeCommand),
+
+    /// List the registered nodes
+    List(ListNodeCommand)
+}
+
+#[derive(Debug, Args)]
+struct RunNodeCommand {
+    /// Name of the node to run
+    #[arg(value_name = "node_name", index = 1)]
+    node_name: String,
+}
+
+#[derive(Debug, Args)]
+struct ListNodeCommand {
+    /// Also print binary names
+    #[arg(short, long)]
+    bin_name: bool,
+
+    /// Also print package path
+    #[arg(short, long)]
+    package_path: bool,
+}
+
+#[derive(Debug, Subcommand)]
 enum TopicCommands {
     /// Topic subscription command
     Sub(SubTopicCommand),
@@ -152,33 +179,6 @@ struct ShowMsgCommand {
 #[derive(Debug, Args)]
 struct ListMsgCommand {
 
-}
-
-#[derive(Debug, Subcommand)]
-enum  NodeCommands {
-    /// Run the given registered node
-    Run(RunNodeCommand),
-
-    /// List the registered nodes
-    List(ListNodeCommand)
-}
-
-#[derive(Debug, Args)]
-struct RunNodeCommand {
-    /// Name of the node to run
-    #[arg(value_name = "node_name", index = 1)]
-    node_name: String,
-}
-
-#[derive(Debug, Args)]
-struct ListNodeCommand {
-    /// Also print binary names
-    #[arg(short, long)]
-    bin_name: bool,
-
-    /// Also print binary path
-    #[arg(short, long)]
-    package_path: bool,
 }
 
 const TEMP_FOLDER: &str = "C:\\Users\\Julien\\Documents\\Recherche\\Generic_Robot_Framework\\temp\\";

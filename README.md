@@ -34,6 +34,35 @@ Arguments:
 
 ---
 
+**Node run**
+
+Run the given registered node
+
+```shell
+grf node run <node_name>
+```
+
+Arguments:
+-  `<node_name>` Name of the node to run
+
+---
+
+**Node list**
+
+List the registered nodes
+
+```shell
+grf node list [-b, --bin-name, -p, --package-path]
+```
+
+Arguments:
+
+- `-b, --bin-name` Also print binary names
+- `-p, --package-path` Also print package path
+
+
+---
+
 **Topic pub**
 
 Topic subscription command
@@ -67,8 +96,12 @@ Arguments:
 Topic list command
 
 ```shell
-grf topic list
+grf topic list [-m, --message-types]
 ```
+
+Arguments:
+
+- `-m, --message-types` Also prints messages types
 
 ---
 
@@ -115,7 +148,7 @@ grf msg list
 Creates the completion files to source in order to use topics and default messages.
 
 ```shell
-grf completions
+grf completions [-n, --no-sourcing]
 ```
 
 Arguments:
