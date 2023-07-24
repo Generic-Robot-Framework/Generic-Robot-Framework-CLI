@@ -1,3 +1,4 @@
+use std::process::exit;
 use crate::message::message::get_message_type;
 
 /// Client side get message
@@ -13,6 +14,7 @@ pub fn handle_get_message_command(topic_name: String) {
         }
     }
     else {
-        panic!("Topic nt found")
+        println!("Topic nt found");
+        exit(1);
     }
 }

@@ -1,6 +1,7 @@
 use std::io::Write;
 use std::net::{Shutdown, TcpStream};
-use crate::message::message::{get_message_type, Message};
+use std::process::exit;
+use crate::message::message::{get_message_type, get_schema, Message, topic_exists};
 use crate::server::serve::{acknowledgement_http_request, AtomicTopics, handle_generic_topics, message_to_http_request};
 
 /// Server side topic pub
@@ -29,28 +30,49 @@ pub fn handle_message_kind_pub(mut stream: TcpStream, message: Message, topics: 
 
 /// Client side topic pub
 pub fn handle_topic_pub_command(topic_name: String, message: Option<String>) {
+    if !topic_exists(topic_name.clone()) {
+        println!("Topic \"{}\" not found", topic_name);
+        exit(1);
+    }
 
     let data: Message;
 
-    if message.is_some() {
-        println!("Sending message \"{}\" to topic \"{}\"", message.clone().unwrap(), topic_name);
 
-        let message_type = get_message_type(topic_name.clone());
+    let message_type = get_message_type(topic_name.clone()).unwrap();
 
-        if message_type.is_none() {
-            panic!("Unknown message type");
+    if message_type.is_some() {
+        if message.is_some() {
+            let schema = get_schema(message_type.clone().unwrap());
+            let data_to_validate = serde_json::from_str(message.clone().unwrap().as_str()).expect("Could not deserialize message to JSON");
+            let result = schema.validate(&data_to_validate);
+
+            if result.is_err() {
+                println!("Wrong message format, should be \"{}\" for topic \"{}\"", message_type.unwrap(), topic_name);
+                exit(1);
+            }
+
+            println!("Sending message \"{}\" to topic \"{}\"", message.clone().unwrap(), topic_name);
+
+            let content = serde_json::from_str(&message.unwrap()).expect("Could not parse message to JSON");
+
+            data = Message {
+                kind: String::from("pub"),
+                topic: Some(topic_name),
+                message_type,
+                message: Some(content)
+            };
         }
-
-        let content = serde_json::from_str(&message.unwrap()).expect("Could not parse message to JSON");
-
-        data = Message {
-            kind: String::from("pub"),
-            topic: Some(topic_name),
-            message_type: message_type.unwrap(),
-            message: Some(content)
-        };
+        else {
+            println!("Wrong message format, should be \"{}\" for topic \"{}\"", message_type.unwrap(), topic_name);
+            exit(1);
+        }
     }
     else {
+        if message.is_some() {
+            println!("Wrong message format, should be None for topic \"{}\"", topic_name);
+            exit(1);
+        }
+
         println!("Sending empty message to topic \"{}\"", topic_name);
 
         data = Message {

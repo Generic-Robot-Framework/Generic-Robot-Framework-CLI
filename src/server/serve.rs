@@ -5,17 +5,20 @@ use std::net::{TcpListener, TcpStream};
 use std::path::PathBuf;
 use std::process::exit;
 use std::sync::{Arc, Mutex};
-use std::thread;
+use std::{thread};
 use generic_robot_framework::models::topic::Topic;
+use crate::get_temp_folder;
 use crate::message::message::Message;
-use crate::TEMP_FOLDER;
 use crate::topic::list::handle_message_kind_list;
 use crate::topic::tpub::handle_message_kind_pub;
 use crate::topic::tsub::handle_message_kind_sub;
 
-pub fn run_server(port: Option<String>) {
+#[derive(Clone)]
+pub struct AtomicTopics {
+    pub(crate) topics: Arc<Mutex<Vec<Topic>>>
+}
 
-    /* ===== */
+pub fn run_server(port: Option<String>) {
     println!("Starting server...");
 
     let address = "127.0.0.1:".to_string() + port.unwrap_or("1312".to_string()).as_str();
@@ -58,7 +61,12 @@ pub fn run_server(port: Option<String>) {
 pub fn handle_connection(mut stream: TcpStream, topics: AtomicTopics) {
     let http_request = single_request_to_string_vec(&mut stream);
 
-    println!("Received: {:?}", http_request.to_vec());
+    println!("--------");
+    print!("Received: ");
+    for data in http_request.to_vec() {
+        print!("{}, ", data);
+    }
+    println!();
 
     if http_request.len() != 3 {
         panic!("Malformed request")
@@ -100,6 +108,7 @@ pub fn handle_generic_topics(topic_name: String) {
 }
 
 pub const OK_HTTP_STATUS: &str = "HTTP/1.1 200 OK";
+pub const BAD_REQUEST_HTTP_STATUS: &str = "HTTP/1.1 400 BAD_REQUEST";
 
 /// Returns a single request and returns it a Vector of Strings
 pub fn single_request_to_string_vec(stream: &mut TcpStream) -> Vec<String> {
@@ -144,12 +153,6 @@ pub fn message_to_http_request(data: &Message) -> String {
     format!("{OK_HTTP_STATUS}\r\nContent-Length: {length}\r\nContent: {contents}")
 }
 
-
-#[derive(Clone)]
-pub struct AtomicTopics {
-    pub(crate) topics: Arc<Mutex<Vec<Topic>>>
-}
-
 impl AtomicTopics {
     const fn new(topics: Arc<Mutex<Vec<Topic>>>) -> AtomicTopics {
         AtomicTopics {
@@ -159,7 +162,7 @@ impl AtomicTopics {
 
     /// Writes the name of the available topics to the topics file
     pub fn topics_to_file(&self) {
-        let topics_file_path = PathBuf::from(TEMP_FOLDER).join("topics.json");
+        let topics_file_path = PathBuf::from(get_temp_folder().unwrap()).join("topics.json");
 
         let mut topics_file = File::create(topics_file_path).expect("Cannot create topics file");
 

@@ -1,4 +1,11 @@
+use std::{fs};
+use std::io::stdin;
+use std::path::PathBuf;
+use std::process::exit;
 use clap::{Args, CommandFactory, Parser, Subcommand};
+use directories::BaseDirs;
+use winreg::enums::HKEY_CURRENT_USER;
+use winreg::RegKey;
 use crate::build::build::build_workspace;
 use crate::completions::completions::generate_completions;
 use crate::message::get::handle_get_message_command;
@@ -124,8 +131,8 @@ struct SubTopicCommand {
     topic: String,
 
     /// Topic message type
-    #[arg(value_name = "message_type", index = 2)]
-    message_type: Option<String>
+    #[arg(short, long, value_name = "message_type", default_missing_value = None, required = false)]
+    create_topic: Option<Option<String>>,
 }
 
 #[derive(Debug, Args)]
@@ -136,7 +143,7 @@ struct PubTopicCommand {
 
     /// Message to send
     #[arg(value_name = "message", index = 2)]
-    message: Option<String>
+    message: Option<String>,
 }
 
 #[derive(Debug, Args)]
@@ -181,19 +188,19 @@ struct ListMsgCommand {
 
 }
 
-const TEMP_FOLDER: &str = "C:\\Users\\Julien\\Documents\\Recherche\\Generic_Robot_Framework\\temp\\";
-
 fn main() {
     let cli = Cli::parse();
     let mut cmd = Cli::command();
     let cmd_name = "grf".to_string();
     cmd.set_bin_name(&cmd_name);
 
+    verify_env_variable();
+
     match cli.command {
         Commands::Topic(topic_commands) => {
             match topic_commands {
                 TopicCommands::Sub(tsub) => {
-                    handle_topic_sub_command(tsub.topic, tsub.message_type);
+                    handle_topic_sub_command(tsub.topic, tsub.create_topic);
                 }
 
                 TopicCommands::Pub(mut tpub) => {
@@ -236,10 +243,10 @@ fn main() {
             let path;
 
             if build.path.is_some() {
-                path = build.path.unwrap();
+                path = PathBuf::from(build.path.unwrap());
             }
             else {
-                path = std::env::current_dir().unwrap().display().to_string()
+                path = std::env::current_dir().unwrap();
             }
 
             let workspace = parse_workspace(path);
@@ -259,4 +266,74 @@ fn main() {
 // https://stackoverflow.com/questions/23975391/how-to-convert-a-string-into-a-static-str#:~:text=You%20cannot%20obtain%20%26'static%20str,String%20own%20lifetime%20from%20it.
 fn string_to_static_str(s: String) -> &'static str {
     Box::leak(s.into_boxed_str())
+}
+
+fn verify_env_variable() {
+    let temp_folder = get_temp_folder();
+
+    if temp_folder.is_err() {
+        println!("Environment variable \"GRF_TEMP_FOLDER\" is not set");
+        println!("Would you like to set it automatically? [yes/no]");
+
+        let mut response = String::new();
+        stdin().read_line(&mut response).unwrap();
+        response = response.replace("\n", "").replace("\r", "");
+
+        if response == "yes" || response == "y" {
+
+            if let Some(base_dirs) = BaseDirs::new() {
+                let temp_folder = base_dirs.config_local_dir().join("grf");
+
+                if !temp_folder.exists() {
+                    fs::create_dir(temp_folder.clone()).expect("Could not create GRF config folder");
+                }
+
+                let completions_folder = temp_folder.clone().join("completions");
+                if !completions_folder.exists() {
+                    fs::create_dir(completions_folder).expect("Could not create GRF completions folder");
+                }
+
+                let defaults_folder = temp_folder.clone().join("defaults");
+                if !defaults_folder.exists() {
+                    fs::create_dir(defaults_folder).expect("Could not create GRF defaults folder");
+                }
+
+                let schema_folder = temp_folder.clone().join("schemas");
+                if !schema_folder.exists() {
+                    fs::create_dir(schema_folder).expect("Could not create GRF schemas folder");
+                }
+
+                #[cfg(windows)]
+                {
+                    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+                    let (env, _) = hkcu.create_subkey("Environment").unwrap();
+                    env.set_value("GRF_TEMP_FOLDER", &temp_folder.to_str().unwrap()).expect("Cannot set GRF_TEMP_FOLDER environment variable");
+                }
+                #[cfg(linux)] {
+                    env::set_var("GRF_TEMP_FOLDER", temp_folder.to_str()).expect("Cannot set GRF_TEMP_FOLDER environment variable");
+                }
+
+                println!("Successfully created temps dir at location:");
+                println!("{}", temp_folder.to_str().unwrap());
+                println!();
+                println!("You can now use the CLI");
+                exit(0);
+            }
+        }
+
+        println!("You need to set the variable before using the CLI");
+        exit(1);
+    }
+}
+
+#[cfg(windows)]
+fn get_temp_folder() -> std::io::Result<String> {
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let (env, _) = hkcu.create_subkey("Environment").unwrap();
+    env.get_value("GRF_TEMP_FOLDER")
+}
+
+#[cfg(linux)]
+fn get_temp_folder() -> std::io::Result<String> {
+    std::env::var("GRF_TEMP_FOLDER")
 }

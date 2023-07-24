@@ -2,7 +2,7 @@ use std::path::{PathBuf};
 use clap::Command;
 use clap_complete::generate_to;
 use clap_complete::Shell::{Bash, Elvish, Fish, PowerShell, Zsh};
-use crate::{string_to_static_str, TEMP_FOLDER};
+use crate::{get_temp_folder, string_to_static_str};
 use crate::message::message::{get_default, get_topics};
 
 pub fn generate_completions(mut cmd: Command, cmd_name: String, no_sourcing: bool) {
@@ -42,7 +42,7 @@ pub fn generate_completions(mut cmd: Command, cmd_name: String, no_sourcing: boo
         }
     }
 
-    let outdir = PathBuf::from(TEMP_FOLDER).join("completions");
+    let outdir = PathBuf::from(get_temp_folder().unwrap()).join("completions");
 
     let _powershell = generate_to(PowerShell, &mut cmd, &cmd_name, &outdir).ok();
     let _bash = generate_to(Bash, &mut cmd, &cmd_name, &outdir).ok();

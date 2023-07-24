@@ -1,10 +1,10 @@
 use std::fs;
-use std::path::{MAIN_SEPARATOR_STR, PathBuf};
+use std::path::{PathBuf};
 use cargo_manifest::Manifest;
-use crate::package::models::{Package, PackageFile, Workspace};
+use crate::package::package::{Package, PackageFile, Workspace};
 
-pub fn parse_workspace(workspace_path: String) -> Workspace {
-    let manifest_path = workspace_path.clone() + "Cargo.toml";
+pub fn parse_workspace(workspace_path: PathBuf) -> Workspace {
+    let manifest_path = workspace_path.clone().join("Cargo.toml");
 
     let manifest_content = fs::read_to_string(&manifest_path).expect("Could not read Cargo.toml file");
     let workspace_manifest: Manifest = toml::from_str(manifest_content.as_str()).expect("Absent or malformed manifest");
@@ -21,7 +21,7 @@ pub fn parse_workspace(workspace_path: String) -> Workspace {
     };
 
     for package_path in toml_workspace.members {
-        let package_manifest_path = workspace_path.clone() + package_path.as_str() + MAIN_SEPARATOR_STR + "Cargo.toml";
+        let package_manifest_path = workspace_path.clone().join(&package_path).join("Cargo.toml");
 
         let package_content = fs::read_to_string(package_manifest_path).expect("Could not read Cargo.toml file");
         let package_manifest: Manifest = toml::from_str(package_content.as_str()).expect("Absent or malformed manifest");

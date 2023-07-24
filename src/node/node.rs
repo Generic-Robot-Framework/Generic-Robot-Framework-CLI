@@ -1,8 +1,8 @@
-use std::fs;
+use std::{fs};
 use std::fs::File;
 use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
-use crate::TEMP_FOLDER;
+use crate::get_temp_folder;
 
 #[derive(Serialize, Deserialize)]
 pub struct NodeFile {
@@ -12,7 +12,7 @@ pub struct NodeFile {
 }
 
 pub fn get_nodes() ->Vec<NodeFile> {
-    let nodes_file_path = PathBuf::from(TEMP_FOLDER).join("nodes.json");
+    let nodes_file_path = PathBuf::from(get_temp_folder().unwrap()).join("nodes.json");
 
     if !nodes_file_path.exists() {
         File::create(&nodes_file_path).expect("Cannot create nodes file");

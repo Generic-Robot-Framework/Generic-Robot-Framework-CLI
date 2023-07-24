@@ -2,9 +2,9 @@ use std::{fs};
 use std::fs::{DirEntry, File};
 use std::path::PathBuf;
 use std::process::{Command, exit};
-use crate::package::models::Workspace;
+use crate::get_temp_folder;
+use crate::package::package::Workspace;
 use crate::node::node::NodeFile;
-use crate::TEMP_FOLDER;
 
 pub fn build_workspace(workspace: Workspace) {
     let workspace_manifest  = workspace.clone().path.join("Cargo.toml");
@@ -61,7 +61,7 @@ fn build_messages(msg_folder_path: PathBuf, bin_folder_path: PathBuf, package_pa
                     "run",
                     "--manifest-path", package_path.clone().join("Cargo.toml").to_str().unwrap(),
                     "--bin", bin_name.clone(),
-                    TEMP_FOLDER
+                    get_temp_folder().unwrap().as_str()
                 ]).output();
             let unwrapped_output = output.unwrap();
 
@@ -141,7 +141,7 @@ fn build_binaries(bin_folder_path: PathBuf, package_path: PathBuf, nodes: &mut V
 }
 
 fn write_messages_types_to_file(messages_types: Vec<String>) {
-    let messages_types_list_file_path = PathBuf::from(TEMP_FOLDER).join("messages_types.json");
+    let messages_types_list_file_path = PathBuf::from(get_temp_folder().unwrap()).join("messages_types.json");
 
     if !messages_types_list_file_path.exists() {
         File::create(&messages_types_list_file_path).expect("Cannot create messages types file");
@@ -153,7 +153,7 @@ fn write_messages_types_to_file(messages_types: Vec<String>) {
 }
 
 fn write_nodes_to_file(nodes: Vec<NodeFile>) {
-    let nodes_list_file_path = PathBuf::from(TEMP_FOLDER).join("nodes.json");
+    let nodes_list_file_path = PathBuf::from(get_temp_folder().unwrap()).join("nodes.json");
 
     if !nodes_list_file_path.exists() {
         File::create(&nodes_list_file_path).expect("Cannot create node file");
