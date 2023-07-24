@@ -130,7 +130,7 @@ struct SubTopicCommand {
     #[arg(value_name = "topic", index = 1)]
     topic: String,
 
-    /// Topic message type
+    /// Create a topic with given message type, None if no message type was provided
     #[arg(short, long, value_name = "message_type", default_missing_value = None, required = false)]
     create_topic: Option<Option<String>>,
 }

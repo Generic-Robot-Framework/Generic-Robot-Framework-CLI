@@ -111,12 +111,12 @@ Arguments:
 Topic publication command
 
 ```shell
-grf topic sub <topic> [message_type]
+grf topic sub <topic> [-c, --create-topic [<message_type>]]
 ```
 
 Arguments:
 - `<topic>` Name of the topic to sub to
-- `[message_type]` Topic message type
+- `-c, --create-topic [<message_type>]` Create a topic with given message type, None if no message type was provided
 
 ---
 
