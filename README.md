@@ -58,6 +58,8 @@ Print this message or the help of the given subcommand(s).
 grf help
 ```
 
+---
+
 ### Node commands
 
 #### Node run
@@ -86,6 +88,7 @@ Arguments:
 - `-b, --bin-name` Also print binary names
 - `-p, --package-path` Also print package path
 
+---
 
 ### Topic commands
 
@@ -129,6 +132,7 @@ Arguments:
 
 - `-m, --message-types` Also prints messages types
 
+---
 
 ### Message commands
 
