@@ -2,7 +2,6 @@ use std::{fs};
 use std::fs::{DirEntry, File};
 use std::path::PathBuf;
 use std::process::{Command, exit};
-use cargo_manifest::{Dependency, Manifest};
 use crate::package::models::Workspace;
 use crate::node::node::NodeFile;
 use crate::TEMP_FOLDER;
@@ -24,7 +23,7 @@ pub fn build_workspace(workspace: Workspace) {
 
         println!("      ┌—┤ {} ├—┐", package_file.package.name);
 
-        build_messages(msg_folder_path, package_path.clone(), &mut messages_types);
+        build_messages(msg_folder_path, bin_folder_path.clone(), package_path.clone(), &mut messages_types);
         build_binaries(bin_folder_path, package_path.clone(), &mut nodes);
 
         println!("      │");
@@ -37,53 +36,7 @@ pub fn build_workspace(workspace: Workspace) {
     println!("Workspace built")
 }
 
-fn append_dependencies_to_message_file(package_path: PathBuf, message_file: PathBuf) {
-    let package_manifest_path = package_path.join("Cargo.toml");
-    let package_manifest_content = fs::read_to_string(package_manifest_path).expect("Could not read package Cargo.toml file");
-    let package_manifest: Manifest = toml::from_str(package_manifest_content.as_str()).expect("Absent or malformed manifest");
-
-    if package_manifest.dependencies.is_some() {
-        let mut dependencies_string =r"//! ```cargo
-//! [dependencies]
-".to_owned();
-
-        for (name, dependency) in package_manifest.dependencies.unwrap() {
-            match dependency {
-                Dependency::Simple(version) => {
-                    dependencies_string.push_str(format!("//! {} = \"{}\"\n", name.clone(), version.clone()).as_str())
-                }
-                Dependency::Detailed(detailed) => {
-                    if detailed.version.is_some() {
-                        dependencies_string.push_str(format!("//! {} = \"{}\"\n", name.clone(), detailed.version.unwrap().clone()).as_str())
-                    }
-
-                    else if detailed.path.is_some() {
-                        let new_path = detailed.path.unwrap().clone().replace("\\", "\\\\");
-                        #[cfg(windows)]
-                        {
-                            dependencies_string.push_str(format!("//! {} = {{ path = \"..\\\\..\\\\{}\" }}\n", name.clone(), new_path).as_str())
-                        }
-                        #[cfg(linux)]
-                        {
-                            dependencies_string.push_str(format!("//! {} = {{ path = \"../../{}\" }}\n", name.clone(), new_path).as_str())
-                        }
-                    }
-                }
-            }
-        }
-
-        dependencies_string.push_str("//! ```\n\n");
-
-
-        let file_content = fs::read_to_string(&message_file).unwrap();
-
-        fs::write(&message_file, dependencies_string + file_content.as_str()).ok();
-    }
-
-}
-
-// TODO: Maybe move the message to build in the bin folder and simply use cargo run
-fn build_messages(msg_folder_path: PathBuf, package_path: PathBuf, messages_types: &mut Vec<String>) {
+fn build_messages(msg_folder_path: PathBuf, bin_folder_path: PathBuf, package_path: PathBuf, messages_types: &mut Vec<String>) {
     if msg_folder_path.exists() && msg_folder_path.is_dir() {
         let message_paths = fs::read_dir(msg_folder_path)
             .unwrap()
@@ -98,13 +51,18 @@ fn build_messages(msg_folder_path: PathBuf, package_path: PathBuf, messages_type
             println!("      │   - {}", path.file_name().to_str().unwrap());
             println!("      │       - Building", );
 
-            let mut alt_path = path.path();
-            alt_path.set_file_name(format!("_{}", path.file_name().to_str().unwrap()));
+            let alt_path = bin_folder_path.clone().join(format!("_{}", path.file_name().to_str().unwrap()));
             fs::copy(path.path(), &alt_path).expect("Could not copy message file");
 
-            append_dependencies_to_message_file(package_path.clone(), alt_path.clone());
+            let bin_name = alt_path.file_stem().unwrap().to_str().unwrap();
 
-            let output = Command::new("cargo").args(["script", alt_path.to_str().unwrap(), TEMP_FOLDER]).output();
+            let output = Command::new("cargo")
+                .args([
+                    "run",
+                    "--manifest-path", package_path.clone().join("Cargo.toml").to_str().unwrap(),
+                    "--bin", bin_name.clone(),
+                    TEMP_FOLDER
+                ]).output();
             let unwrapped_output = output.unwrap();
 
             if !unwrapped_output.clone().status.success() {
