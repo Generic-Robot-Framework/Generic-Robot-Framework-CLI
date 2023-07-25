@@ -1,11 +1,16 @@
 use std::{fs};
+use std::error::Error;
 use std::io::stdin;
 use std::path::PathBuf;
 use std::process::exit;
 use clap::{Args, CommandFactory, Parser, Subcommand};
 use directories::BaseDirs;
+
+#[cfg(windows)]
 use winreg::enums::HKEY_CURRENT_USER;
+#[cfg(windows)]
 use winreg::RegKey;
+
 use crate::build::build::build_workspace;
 use crate::completions::completions::generate_completions;
 use crate::message::get::handle_get_message_command;
@@ -310,7 +315,7 @@ fn verify_env_variable() {
                     env.set_value("GRF_TEMP_FOLDER", &temp_folder.to_str().unwrap()).expect("Cannot set GRF_TEMP_FOLDER environment variable");
                 }
                 #[cfg(not(windows))] {
-                    env::set_var("GRF_TEMP_FOLDER", temp_folder.to_str()).expect("Cannot set GRF_TEMP_FOLDER environment variable");
+                    std::env::set_var("GRF_TEMP_FOLDER", temp_folder.to_str()).expect("Cannot set GRF_TEMP_FOLDER environment variable");
                 }
 
                 println!("Successfully created temps dir at location:");
@@ -335,5 +340,12 @@ fn get_temp_folder() -> std::io::Result<String> {
 
 #[cfg(not(windows))]
 fn get_temp_folder() -> std::io::Result<String> {
-    std::env::var("GRF_TEMP_FOLDER")
+    let result = std::env::var("GRF_TEMP_FOLDER");
+
+    if let Some(error) = result.err() {
+        return std::io::Result::Err(error.source().unwrap());
+    }
+    else {
+        return std::io::Result::Ok(result.unwrap());
+    }
 }
