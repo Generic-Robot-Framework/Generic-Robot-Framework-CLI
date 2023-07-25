@@ -1,6 +1,6 @@
 use std::{fs};
 use std::error::Error;
-use std::io::stdin;
+use std::io::{ErrorKind, stdin};
 use std::path::PathBuf;
 use std::process::exit;
 use clap::{Args, CommandFactory, Parser, Subcommand};
@@ -315,7 +315,7 @@ fn verify_env_variable() {
                     env.set_value("GRF_TEMP_FOLDER", &temp_folder.to_str().unwrap()).expect("Cannot set GRF_TEMP_FOLDER environment variable");
                 }
                 #[cfg(not(windows))] {
-                    std::env::set_var("GRF_TEMP_FOLDER", temp_folder.to_str()).expect("Cannot set GRF_TEMP_FOLDER environment variable");
+                    std::env::set_var("GRF_TEMP_FOLDER", temp_folder.to_str().unwrap());
                 }
 
                 println!("Successfully created temps dir at location:");
@@ -342,10 +342,9 @@ fn get_temp_folder() -> std::io::Result<String> {
 fn get_temp_folder() -> std::io::Result<String> {
     let result = std::env::var("GRF_TEMP_FOLDER");
 
-    if let Some(error) = result.err() {
-        return std::io::Result::Err(error.source().unwrap());
-    }
-    else {
-        return std::io::Result::Ok(result.unwrap());
+    return if let Some(error) = result.clone().err() {
+        Err(std::io::Error::new(ErrorKind::Other, error))
+    } else {
+        Ok(result.unwrap())
     }
 }
