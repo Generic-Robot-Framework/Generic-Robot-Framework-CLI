@@ -309,7 +309,7 @@ fn verify_env_variable() {
                     let (env, _) = hkcu.create_subkey("Environment").unwrap();
                     env.set_value("GRF_TEMP_FOLDER", &temp_folder.to_str().unwrap()).expect("Cannot set GRF_TEMP_FOLDER environment variable");
                 }
-                #[cfg(linux)] {
+                #[cfg(not(windows))] {
                     env::set_var("GRF_TEMP_FOLDER", temp_folder.to_str()).expect("Cannot set GRF_TEMP_FOLDER environment variable");
                 }
 
@@ -333,7 +333,7 @@ fn get_temp_folder() -> std::io::Result<String> {
     env.get_value("GRF_TEMP_FOLDER")
 }
 
-#[cfg(linux)]
+#[cfg(not(windows))]
 fn get_temp_folder() -> std::io::Result<String> {
     std::env::var("GRF_TEMP_FOLDER")
 }
