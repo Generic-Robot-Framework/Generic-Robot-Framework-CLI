@@ -1,6 +1,9 @@
 Generic Robot Framework CLI
 ===
 
+[![Rust](https://github.com/Generic-Robot-Framework/Generic-Robot-Framework-CLI/actions/workflows/rust.yml/badge.svg)](https://github.com/Generic-Robot-Framework/Generic-Robot-Framework-CLI/actions/workflows/rust.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 This tool is made to work with the [Generic Robot Framework library](https://crates.io/crates/generic_robot_framework).
 
 ## Commands
