@@ -1,5 +1,6 @@
 use std::{fs};
-use std::io::{stdin};
+use std::error::Error;
+use std::io::{ErrorKind, stdin};
 use std::path::PathBuf;
 use std::process::exit;
 use clap::{Args, CommandFactory, Parser, Subcommand};
@@ -12,7 +13,6 @@ use winreg::RegKey;
 
 use crate::build::build::build_workspace;
 use crate::completions::completions::generate_completions;
-use crate::message::find::handle_message_find_command;
 use crate::message::get::handle_get_message_command;
 use crate::message::list::handle_message_list_command;
 use crate::message::show::handle_show_message_command;
@@ -166,9 +166,6 @@ enum MsgCommands {
     /// Show default data for the given message type
     Show(ShowMsgCommand),
 
-    /// Find the topics that use the given message type
-    Find(FindMsgCommand),
-
     /// List registered messages
     List(ListMsgCommand)
 }
@@ -189,13 +186,6 @@ struct ShowMsgCommand {
     /// Pretty print
     #[arg(short, long)]
     pretty: bool,
-}
-
-#[derive(Debug, Args)]
-struct FindMsgCommand {
-    /// Name of the message type to find usage of
-    #[arg(value_name = "message_type", index = 1)]
-    message_type: String,
 }
 
 #[derive(Debug, Args)]
@@ -235,9 +225,6 @@ fn main() {
                 }
                 MsgCommands::Show(show) => {
                     handle_show_message_command(show.message_type, show.pretty)
-                }
-                MsgCommands::Find(find) => {
-                    handle_message_find_command(find.message_type)
                 }
                 MsgCommands::List(_list) => {
                     handle_message_list_command()
