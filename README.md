@@ -29,7 +29,7 @@ grf build
 
 Options:
 
-- `--path <PATH>`  Optional, serve a workspace from outside
+- `--path <PATH>`  Optional, build a workspace from outside
 
 ---
 
@@ -173,7 +173,21 @@ grf msg show <message_type>
 Arguments:
 
 - `<message_type>` Name of the message type to show default data
- 
+
+---
+
+#### Message find
+
+Find the topics that use the given message type
+
+```shell
+grf msg find <message_type>
+```
+
+Arguments:
+
+- `<message_type>` Name of the message type to find usage of
+- 
 ---
 
 #### Message list

@@ -4,41 +4,67 @@ use clap_complete::generate_to;
 use clap_complete::Shell::{Bash, Elvish, Fish, PowerShell, Zsh};
 use crate::{get_temp_folder, string_to_static_str};
 use crate::message::message::{get_default, get_topics};
+use crate::node::node::get_nodes;
 
 pub fn generate_completions(mut cmd: Command, cmd_name: String, no_sourcing: bool) {
     for command in cmd.get_subcommands_mut() {
-        if command.get_name() != "topic" {
-            continue;
-        }
 
-        for topic_command in command.get_subcommands_mut() {
-            if topic_command.get_name() != "sub" && topic_command.get_name() != "pub" {
-                continue;
-            }
+        match command.get_name() {
+            "topic" => {
+                for topic_command in command.get_subcommands_mut() {
+                    match topic_command.get_name() {
+                        "sub" | "pub" => {
+                            let topics = get_topics();
 
-            let topics = get_topics();
+                            for (topic, message_type) in topics {
+                                let topic = string_to_static_str(topic);
 
-            for (topic, message_type) in topics {
-                let topic = string_to_static_str(topic);
+                                if topic.is_empty() {
+                                    continue;
+                                }
 
-                if topic.is_empty() {
-                    continue;
-                }
+                                let mut new_command = Command::new(topic);
 
-                let mut new_command = Command::new(topic);
+                                if message_type.is_some() {
+                                    let message_default = get_default(message_type.unwrap());
 
-                if message_type.is_some() {
-                    let message_default = get_default(message_type.unwrap());
+                                    if message_default.is_some() {
+                                        let message_default = string_to_static_str(format!("\"{}\"", message_default.unwrap()));
 
-                    if message_default.is_some() {
-                        let message_default = string_to_static_str(format!("\"{}\"", message_default.unwrap()));
+                                        new_command = new_command.subcommand(Command::new(message_default));
+                                    }
+                                }
 
-                        new_command = new_command.subcommand(Command::new(message_default));
+                                *topic_command = topic_command.clone().subcommand(new_command);
+                            }
+                        }
+                        _ => {}
                     }
                 }
-
-                *topic_command = topic_command.clone().subcommand(new_command);
             }
+            "node" => {
+                for node_command in command.get_subcommands_mut() {
+                    match node_command.get_name() {
+                        "run" => {
+                            let nodes = get_nodes();
+
+                            for node in nodes {
+                                let node_name = string_to_static_str(node.name);
+
+                                if node_name.is_empty() {
+                                    continue;
+                                }
+
+                                let new_command = Command::new(node_name);
+
+                                *node_command = node_command.clone().subcommand(new_command);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            _ => {}
         }
     }
 
