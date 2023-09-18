@@ -1,6 +1,5 @@
 use std::{fs};
-use std::error::Error;
-use std::io::{ErrorKind, stdin};
+use std::io::{stdin};
 use std::path::PathBuf;
 use std::process::exit;
 use clap::{Args, CommandFactory, Parser, Subcommand};

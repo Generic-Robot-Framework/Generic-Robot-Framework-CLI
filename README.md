@@ -6,6 +6,15 @@ Generic Robot Framework CLI
 
 This tool is made to work with the [Generic Robot Framework library](https://crates.io/crates/generic_robot_framework).
 
+## TODOs
+
+- Improve build procedure for nodes
+- Implement launch files 
+- Implement a make command to create files/packages in user's workspace:
+  - make node
+  - make launch
+  - make package
+
 ## Commands
 
 ### General commands
